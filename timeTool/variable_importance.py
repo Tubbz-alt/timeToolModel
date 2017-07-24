@@ -61,7 +61,7 @@ def write_vi(write_dir, shot_num, pred_diff):
 def write_gnuplot(write_dir, shot_num):
 	with open(write_dir + 'vi/vi.gp','w') as f:
 		f.write('set term png\n')
-		f.write('set output \'../work/transferLearning/pngs_to_label/r' + str(run_num) + '_s' + str(shot_num) + '_vi.png\'\n')
+		f.write('set output \'/reg/d/psdm/XPP/xppl3816/scratch/transferLearning/pngs_to_label/r' + str(run_num) + '_s' + str(shot_num) + '_vi.png\'\n')
 		f.write('set xlabel \'index\'\n')
 		f.write('set ylabel \'signal\'\n')
 		f.write('set cblabel \'prediction error\'\n')
@@ -71,7 +71,7 @@ def write_gnuplot(write_dir, shot_num):
 	# Run gnuplot script to generate png
 	os.system('gnuplot ' + write_dir + 'vi/vi.gp')
 
-def main(run, shot_nums, d_dir, write_dir, est):
+def main(run, shot_nums, all_shots, d_dir, write_dir, est):
 	global data_dir, run_num, model
 	
 	data_dir = d_dir
@@ -97,7 +97,10 @@ def main(run, shot_nums, d_dir, write_dir, est):
 	pool = Pool()
 	
 	print('Calculating variable importances')
-	for shot in tqdm(shot_nums.split(' ')):
+	if all_shots: 
+		shot_nums = range(0, num_shots)
+
+	for shot in tqdm(shot_nums):
 	
 		shot_num = int(float(shot))
 
@@ -124,7 +127,7 @@ if __name__=="__main__":
         parser = argparse.ArgumentParser(description=helpstr);
         parser.add_argument('-r','--run', dest='run', type=int, help='run number', default=52)
 	parser.add_argument('-s','--shots',dest='shots', type=str, help='shot number(s)', default='0')
-	parser.add_argument('-i','--inc', dest='increment', type=int, help='every __ shots', default=None)
+	parser.add_argument('-a','--all', dest='all_shots', type=bool, help='all shots', default=False)
 	parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', default='/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/')
         parser.add_argument('-w','--write',dest='write',type=str, help='path to scratch directory where files are  written to', default='/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_results/')
 	parser.add_argument('-m','--model',dest='model',type=str, help='regression model (RF or LR)', default='RF')
@@ -133,11 +136,12 @@ if __name__=="__main__":
 
         # Access input
         run_num = args.run
-	shot_nums = args.shots
+	shot_nums = args.shots.split(' ')
+	all_shots = args.all_shots
 	data_dir = args.directory
 	write_dir = args.write
 	est = args.model
 
         # Call main()
-        main(run_num, shot_nums, data_dir, write_dir, est)
+        main(run_num, shot_nums, all_shots, data_dir, write_dir, est)
 
