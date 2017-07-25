@@ -65,6 +65,7 @@ def write_gnuplot(write_dir, shot_num):
 		f.write('set xlabel \'index\'\n')
 		f.write('set ylabel \'signal\'\n')
 		f.write('set cblabel \'prediction error\'\n')
+		f.write('set cbrange [0:2.5]\n')
 		f.write('set title \'Variable importance results for run ' + str(run_num) + ', shot ' + str(shot_num) + '\'\n')
 		f.write('plot \"< paste \'' + write_dir + 'vi/col_data/r' + str(run_num) + '_s' + str(shot_num) + '_col.dat\' \'' + write_dir + 'vi/vi_data/r' + str(run_num) + '_s' + str(shot_num) + '_vi.dat\'\" u 0:1:2 palette lw 2 with lines title \'opal_0 signal\'\n')
 	

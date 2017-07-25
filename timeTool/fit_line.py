@@ -2,7 +2,7 @@ from sklearn.linear_model import LinearRegression
 import argparse
 import math
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 #############################################
 # Read shot_num,pixel_pos,&predicted delay  #
@@ -12,9 +12,11 @@ def read_data(run_num):
 	# Access predicted data from RF
 	with open(write_dir + 'xppl3816_r' + str(run_num) + '_RF_plot.dat','r') as f:
 		lines = f.readlines()
+	with open(data_dir + 'xppl3816_r' + str(run_num) + '_delays.dat','r') as f:
+		step_lines = f.readlines()
 
-	# Build data dictionary to contain shot_num: pixel_pos,delay
-	data = {int(float(line.split(' ')[0])):(float(line.split(' ')[2]),float(line.split(' ')[3])) for line in lines } 
+	# Build data dictionary to contain shot_num: pixel_pos,delay,step
+	data = {int(float(line.split(' ')[0])):(float(line.split(' ')[2]),float(line.split(' ')[3]),int(float(step_lines[int(float(line.split(' ')[0]))].split(' ')[0]))) for line in lines} 
 
 	return data
 
@@ -23,31 +25,41 @@ def read_data(run_num):
 #############################################
 def split_data(data):
 	
-	step = 2	# start at step=2 since first two steps are skipped due to error in ref image
-
 	# Keep dictionaries of lists of pixel_pos and delay values, whose key is the step number
 	partitioned_pixel = {}
 	partitioned_delay = {}
-	pixel = []
-	delay = []
-	for key,value in data.iteritems():
+	for shot,value in data.iteritems():
+		if value[2] >= 2:
+			if value[2] in partitioned_pixel:
+				partitioned_pixel[value[2]].append(value[0])
+				partitioned_delay[value[2]].append(value[1])
+			else:
+				partitioned_pixel[value[2]] = [value[0]]
+				partitioned_delay[value[2]] = [value[1]]
 
-		# Detect when a new step is starting via shot num and assign list to dict
-		if float(key)/1202.0 > float(step):
-			if len(pixel) > 0 and len(delay) > 0:	
-				partitioned_pixel[step] = np.array(pixel)
-				partitioned_delay[step] = np.array(delay)
-				pixel = []
-				delay = []
-			step += 1
+	for step in partitioned_pixel.keys():
+		partitioned_pixel[step] = np.array(partitioned_pixel[step])
+		partitioned_delay[step] = np.array(partitioned_delay[step])
 
-		# Keep track of all data points from the same step 
-		pixel.append(value[0])
-		delay.append(value[1])
-
-	# Write final list to dictionary
-	partitioned_pixel[step] = np.array(pixel)
-	partitioned_delay[step] = np.array(delay)
+#	for key,value in data.iteritems():
+#			
+#
+#		# Detect when a new step is starting via shot num and assign list to dict
+#		if float(key)/1202.0 > float(step):
+#			if len(pixel) > 0 and len(delay) > 0:	
+#				partitioned_pixel[step] = np.array(pixel)
+#				partitioned_delay[step] = np.array(delay)
+#				pixel = []
+#				delay = []
+#			step += 1
+#
+#		# Keep track of all data points from the same step 
+#		pixel.append(value[0])
+#		delay.append(value[1])
+#
+#	# Write final list to dictionary
+#	partitioned_pixel[step] = np.array(pixel)
+#	partitioned_delay[step] = np.array(delay)
 
 	# Return the partitioned data 
 	return [partitioned_pixel, partitioned_delay]
@@ -78,19 +90,38 @@ def write_to_file(run_num, partitioned_pixels, partitioned_delays, m_list, b_lis
         	        single_step_delays = partitioned_delays[step_num]
 			
 			# Access slope and y-intercept of fitted line to that step
-			m = m_list[step_num-3]
-			b = b_list[step_num-3]
+			m = m_list[step_num]
+			b = b_list[step_num]
 
 			# Write every data point in that step to file
 			f.writelines(str(step_num) + ' ' + str(pix_del_pair[0]) + ' ' + str(pix_del_pair[1]) + ' ' + str(m) + ' ' + str(b) + '\n' for pix_del_pair in zip(single_step_pixels,single_step_delays))	
+def plot(run_num, partitioned_pixels, partitioned_delays, m_list, b_list, step_min=30, step_max=35):
+
+	fig = plt.figure(1)
+	cmap = plt.cm.get_cmap('hsv', step_max-step_min)
+	for step, pixels in partitioned_pixels.iteritems():
+		if step >= step_min and step < step_max: 
+			plt.scatter(pixels, partitioned_delays[step], c=cmap(step-step_min))
+			x0 = 0.0
+			y0 = b_list[step]
+			x1 = 1000.0
+			y1 = (1000.0*m_list[step]) + b_list[step]
+			plt.plot([x0,x1],[y0,y1],c=cmap(step-step_min))
+	plt.xlim((250,450))
+	plt.ylim((0.2,1.2))
+	plt.xlabel('pixel_pos')
+	plt.ylabel('delay')
+	plt.title('Line fitting results')
+	plt.show()
+
 #############################################
 #      Write histogram data to files        #
 #############################################
 def write_histogram_files(run_num, m_list, b_list):
 
 	# 2D histogram: y0_diff vs. m_diff
-	m_diff = np.array([math.fabs(m2-m1) for (m1,m2) in zip(m_list[0:-1],m_list[1:])])
-	b_diff = np.array([math.fabs(b2-b1) for (b1,b2) in zip(b_list[0:-1],b_list[1:])])
+	m_diff = np.array([math.fabs(m2-m1) for (m1,m2) in zip(m_list.values()[0:-1],m_list.values()[1:])])
+	b_diff = np.array([math.fabs(b2-b1) for (b1,b2) in zip(b_list.values()[0:-1],b_list.values()[1:])])
 
 	# Create histogram of b_diff and m_diff
 	[count,x_edges,y_edges] = np.histogram2d(b_diff, m_diff)
@@ -107,7 +138,7 @@ def write_histogram_files(run_num, m_list, b_list):
 			f.write('\n')
 
 	# 1D histogram: m
-	[count,edges] = np.histogram(m_list, bins=30)
+	[count,edges] = np.histogram(m_list.values(), bins=30)
 
 	# Calculate midpoint for each bin
 	bins = [(edge2 + edge1)/2.0 for (edge1,edge2) in zip(edges[0:-1],edges[1:])]
@@ -130,9 +161,9 @@ def main(run_num, fit_bool, hist_bool, dd, wd):
 
 		# Initialize variables designed to calculate mean slope and mean c, as well as tracking every m, b, and c
 		m_sum = 0.0	
-		m_list = []
+		m_list = {}
 		delta_c_sum = 0.0
-		b_list = []
+		b_list = {}
 		last_c = 1000000
 
 		# Iterate through steps
@@ -152,11 +183,12 @@ def main(run_num, fit_bool, hist_bool, dd, wd):
 				delta_c_sum += (c - last_c)
 			else:
 				c_start = c
+
 			last_c = c
 
 			# Keep track of every m and b
-			m_list.append(m)
-			b_list.append(b)
+			m_list[key] = m
+			b_list[key] = b
 
 		# Calculate mean slope and mean delta c
 		m = m_sum / float(len(partitioned_X.values()))
@@ -169,6 +201,9 @@ def main(run_num, fit_bool, hist_bool, dd, wd):
 	
 		# Write results
 		write_to_file(run_num, partitioned_X, partitioned_Y, m_list, b_list)
+
+		# Plot results
+		plot(run_num, partitioned_X, partitioned_Y, m_list, b_list)
 
 	# Write histogram files 
 	if hist_bool:

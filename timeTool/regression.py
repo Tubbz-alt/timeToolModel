@@ -3,9 +3,9 @@ import randomForestRegressor
 import linearRegressor
 import argparse
 from sklearn.metrics import r2_score
+from tqdm import tqdm
 
 shot_num_th = 2404
-
 
 ############################################
 #      Access all data filtered by amp     #
