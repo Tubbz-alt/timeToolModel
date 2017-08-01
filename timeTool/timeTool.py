@@ -95,16 +95,12 @@ for run in ds.runs():
 					img = det.image(evt);
 					filename = args.dirname
 					filename += '/images' + expstr + '_r' + runstr + '_image%d.step%d.dat' % (nevent,nstep);
-					print('printing image ', filename);
 					headstr='# sample image'
-					np.savetxt(filename,img,fmt='%.6e',header=headstr);
 					printsample = False;
 					filename = args.dirname
 					filename += '/images' + expstr + '_r' + runstr + '_TTimage%d.step%d.dat' % (nevent,nstep);
-					print('and image ' , filename);
 					img = TTdet.image(evt);
 					headstr='# sample image TimeTool camera'
-					np.savetxt(filename,img,fmt='%.6e',header=headstr);
 					if ttResults!=None:
 						print(ttResults.position_time());
 

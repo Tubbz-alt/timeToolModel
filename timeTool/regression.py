@@ -44,7 +44,7 @@ def access_data(run_num, shot_th):
 	filtered_tt = {}
 	filtered_data = []
 	for shot in filtered_shots:
-		filtered_tt[shot] = unfiltered_tt[shot]	
+		filtered_tt[shot] = unfiltered_tt[shot]
 		filtered_data.append([float(x) for x in unfiltered_input[shot].strip('\n').split(' ')])
 	filtered_inputs = np.matrix(filtered_data)
 

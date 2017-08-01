@@ -9,6 +9,7 @@ import os
 from multiprocessing import Pool
 from tqdm import tqdm
 from functools import partial
+from operator import itemgetter
 
 # Read all shots from a run
 def access_signals():
@@ -20,18 +21,21 @@ def access_signals():
 	num_shots = i
 	
 # Calculate variable importance for every feature
-def calculate_vi(original_signal, original_pred):
+def calculate_vi():
 
 	# Prep for multiprocessing
-	pool = Pool()
+	#pool = Pool()
+	#pred_diff = pool.map(iterate_features, range(original_signal.shape[1]))
+	#pool.close()
+	#pool.join()
 
-	pred_diff = pool.map(partial(iterate_features, original_signal, original_pred), range(original_signal.shape[1]))
-
-	pool.close()
+	pred_diff = []
+	for i in range(0, original_signal.shape[1]):
+		pred_diff.append(iterate_features(i))
 
         return pred_diff
 
-def iterate_features(original_signal, original_pred, i):
+def iterate_features(i):
 	
 	pred_diff_sum = 0.0
 
@@ -47,10 +51,10 @@ def iterate_features(original_signal, original_pred, i):
 		new_pred = model.predict(permuted_signal.reshape(1, -1))
 		pred_diff_sum += math.fabs(original_pred - new_pred)
 
-                # Average 3 instances
-		pred_d = pred_diff_sum / 3.0
+        # Average 3 instances
+	pred_d = pred_diff_sum / 3.0
 
-	return pred_d
+	return (i,pred_d)
 
 # Write file containing variable importance of each feature to file
 def write_vi(write_dir, shot_num, pred_diff):
@@ -61,11 +65,11 @@ def write_vi(write_dir, shot_num, pred_diff):
 def write_gnuplot(write_dir, shot_num):
 	with open(write_dir + 'vi/vi.gp','w') as f:
 		f.write('set term png\n')
-		f.write('set output \'/reg/d/psdm/XPP/xppl3816/scratch/transferLearning/pngs_to_label/r' + str(run_num) + '_s' + str(shot_num) + '_vi.png\'\n')
+		f.write('set output \'/reg/d/psdm/XPP/xppl3816/scratch/transferLearning/pngs_to_label/' + str(run_num) + '/r' + str(run_num) + '_s' + str(shot_num) + '_vi.png\'\n')
 		f.write('set xlabel \'index\'\n')
 		f.write('set ylabel \'signal\'\n')
 		f.write('set cblabel \'prediction error\'\n')
-		f.write('set cbrange [0:2.5]\n')
+		#f.write('set cbrange [0:2.5]\n')
 		f.write('set title \'Variable importance results for run ' + str(run_num) + ', shot ' + str(shot_num) + '\'\n')
 		f.write('plot \"< paste \'' + write_dir + 'vi/col_data/r' + str(run_num) + '_s' + str(shot_num) + '_col.dat\' \'' + write_dir + 'vi/vi_data/r' + str(run_num) + '_s' + str(shot_num) + '_vi.dat\'\" u 0:1:2 palette lw 2 with lines title \'opal_0 signal\'\n')
 	
@@ -94,9 +98,6 @@ def main(run, shot_nums, all_shots, d_dir, write_dir, est):
 	print('Reading data file')
 	access_signals()
 	
-	# Loop through all specified shot numbers
-	pool = Pool()
-	
 	print('Calculating variable importances')
 	if all_shots: 
 		shot_nums = range(0, num_shots)
@@ -106,11 +107,15 @@ def main(run, shot_nums, all_shots, d_dir, write_dir, est):
 		shot_num = int(float(shot))
 
 		# Access original signal and perform regression on it
+		global original_signal, original_pred
 		original_signal = signals[shot_num] 
        		original_pred = model.predict(original_signal.reshape(1, -1))
 
 		# Calculate variable importance for all features
-		importances = calculate_vi(original_signal, original_pred)
+		paralellized_importances = calculate_vi()
+
+		# Reorder imporances by key after paralellization
+		importances = zip(*sorted(paralellized_importances, key=itemgetter(0)))[1] 
 
 		# Write vi results to file
 		write_vi(write_dir, shot_num, importances)

@@ -3,9 +3,9 @@ from sklearn.metrics import r2_score
 from random import randint
 import numpy as np
 import argparse
+import math
 
 ntree = 100
-mtry = 32
 max_depth = 50
 
 ############################################
@@ -112,6 +112,9 @@ def cross_validate(partitioned_data, partitioned_truths):
 #       Train RF on training_data       #
 #########################################
 def train(training_data, training_truths):
+
+	num_features = training_data[0].shape[0]
+	mtry = int(math.floor(math.sqrt(num_features)))
 
 	forest = RandomForestRegressor(n_estimators=ntree, max_features=mtry, max_depth=max_depth, random_state=2)
 	forest.fit(training_data, training_truths)
