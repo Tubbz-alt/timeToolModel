@@ -2,7 +2,12 @@ import argparse
 
 def write_row_to_col(run, shot, data_dir, write_dir):
 	with open(data_dir + '/xppl3816_r' + str(run) + '_matrix.dat','r') as f:
-		row = f.readlines()[shot].strip('\n').split(' ')
+		lines = f.readlines()
+	if lines[0].startswith('#'):
+		index = shot + 1
+	else:
+		index = shot
+	row = lines[index].strip('\n').split(' ')
 
 	with open(write_dir + 'vi/col_data/r' + str(run) + '_s' + str(shot) + '_col.dat','w') as f:
 		f.writelines([str(item) + '\n' for item in row])

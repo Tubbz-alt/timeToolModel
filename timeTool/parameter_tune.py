@@ -16,7 +16,7 @@ def parameter_tune(folded_data, folded_truths, ntree=None, mtry=None, depth=None
 
 		# Check if ntree is specified or needs to be tuned
 		if ntree is None:
-			param1 = range(150, 1005, 5)
+			param1 = range(950, 2000, 50)
 		else:
 			param1 = [ntree]
 	
@@ -82,7 +82,7 @@ def parameter_tune(folded_data, folded_truths, ntree=None, mtry=None, depth=None
 	pool.close()
 	pool.join() 
 
-	best_score = (-1,-100000)
+	best_score = (1,100000)
 	best_params = {}
 	print('Complete results:')
         print(str(param1_name) + '\t' + str(param2_name) + '\t' + str(param3_name) + '\t|\tR^2\t\t\tRMSE')
@@ -95,7 +95,7 @@ def parameter_tune(folded_data, folded_truths, ntree=None, mtry=None, depth=None
 			+ str(r2_score) + '\t\t'
 			+ str(rmse_score))
 
-		if rmse_score > best_score[1]:
+		if rmse_score < best_score[1]:
 			best_score = (r2_score, rmse_score)
 			best_params[param1_name] = params[param1_name]
 			best_params[param2_name] = params[param2_name]

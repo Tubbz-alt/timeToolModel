@@ -170,7 +170,8 @@ def main(data_dir, write_dir, run_num):
 	[partitioned_data, partitioned_truths, tracking] = fold_data(inputs, ground_truths, num_features, num_shots)
 	
 	# Perform cross validation and report mean R^2 value
-	param = {'n_estimators': 100, 'max_features': 30, 'max_depth': 20}	
+	print('Cross validation...')
+	param = {'n_estimators': 500, 'max_features': 45, 'max_depth': 20}	
 	print('3-fold CV R2: ' + str(cross_validate(partitioned_data, partitioned_truths, param)))
 
 if __name__ == "__main__": 

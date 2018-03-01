@@ -18,7 +18,7 @@ def main(run_nums, data_dir, write_dir):
 
 		# Run RF regression on each run to obtain ground truth files
 		print('Creating ground truth files...')
-		regression.main(run_num, None, 'RF', data_dir, write_dir)
+		regression.main(run_num, None, 'RF', data_dir, write_dir, 2)
 
 		print('\n')
 
