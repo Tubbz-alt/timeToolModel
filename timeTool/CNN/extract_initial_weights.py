@@ -10,7 +10,7 @@ nprect = np.vectorize(rect)
 
 def read_lineouts(filename):
 
-	return np.loadtxt(filename, skiprows=30000)
+	return np.loadtxt(filename)
 
 def transform(lineout):
 
@@ -61,10 +61,9 @@ def write_signal(signal, filename):
 	with open(filename, 'w') as f:
 		f.writelines([str(s) + '\n' for s in signal])
 
-lineouts = read_lineouts('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r110_matrix.dat')
+lineouts = read_lineouts('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_matrix.dat')
 
-#for lineout in lineouts:
-for lineout in lineouts[0:1]:
+for lineout in lineouts:
 
 	write_signal(lineout, 'sig.txt')
 

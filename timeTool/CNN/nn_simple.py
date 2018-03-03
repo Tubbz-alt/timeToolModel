@@ -6,10 +6,13 @@ inputs = np.loadtxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xp
 
 a,b,labels = np.loadtxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_delays.dat', unpack=True)
 
-weights = np.transpose(np.loadtxt('init_weights.txt').reshape(3,1023))
+weights = np.transpose(np.loadtxt('init_weights.txt').reshape(3,1000))
+
+keep_prob = tf.placeholder(tf.float64)
 
 # FC1
-net = fully_connected(inputs=inputs, weights_initializer=tf.constant(weights))
+#import pdb; pdb.set_trace()
+net = fully_connected(inputs=inputs, num_outputs=3, weights_initializer=tf.constant_initializer(weights))
 
 with tf.variable_scope('drop_out'):      # Drop out: a technique to avoid overfitting
                                          # disconnect certain connections to neurons from image to image 
