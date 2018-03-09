@@ -58,21 +58,35 @@ def simple_nn_100(inputs, labels, keep_prob, alpha):
 
     return net, loss, train_step
 
-def next_batch(inputs, labels, num, shuffle=False):
-    # Perform all the checks when running for the first time
+def shuffle_data(inputs, labels):
+    # Shuffle data to avoid time dependency in predictions
+    len_inputs, len_labels = len(inputs), len(labels)
+    if len_inputs != len_labels:
+        raise ValueError('Inputs and labels must have the same length. Got '
+                         '{0} and {1}'.format(len_inputs, len_labels))
+    
+    # Shuffle indices in arange(len_inputs) without replacement (i.e. no repeats)
+    shuffle_indices = np.random.choice(len_inputs, size=len_inputs, replace=False)
+
+    # Apply ordering to inputs and labels
+    shuffle_inputs = inputs[shuffle_indices]
+    shuffle_labels = labels[shuffle_indices]
+    
+    return shuffle_inputs, shuffle_labels
+
+def next_batch(inputs, labels, num):
+    # Generate next batch, either from shuffled inputs or not shuffled inputs
     if not isinstance(num, int):
         raise ValueError('num must be an int. Got {0}'.format(num))
     len_inputs, len_labels = len(inputs), len(labels)
     if len_inputs != len_labels:
         raise ValueError('Inputs and labels must have the same length. Got '
                          '{0} and {1}'.format(len_inputs, len_labels))
+
     start = 0
     # Grab the next batch every time the generator is called
     while True:
-        if shuffle:
-            batch_range = np.random.randint(0, len_inputs, num)
-        else:
-            batch_range = np.arange(start, start+num) % len_inputs
+        batch_range = np.arange(start, start+num) % len_inputs
         batch_inputs = inputs[batch_range]
         batch_labels = labels[batch_range]
         yield batch_inputs, batch_labels
@@ -101,12 +115,13 @@ def run(auto=True):
 
     # Will autofill args with defaults
     if auto:
-        alpha = 1e-4
-        dropout = 1.0
-        batchsize = 100
-        iterations = 100000
-        printn = 20
-        network = 3
+        alpha 		= 1e-4
+        dropout 	= 1.0
+        batchsize 	= 100
+        iterations 	= 100000
+        printn 		= 20
+        network 	= 3
+	shuffle 	= True
 
     # Command line interface will walk through entry
     elif not auto:
@@ -135,6 +150,10 @@ def run(auto=True):
 	if len(network) < 1:	network = 3
 	else:			network = int(network)
 
+        shuffle = 		raw_input('Would you like the data shuffled? (Y/N) ')
+	if shuffle.lower()=='n':shuffle = False
+	else:			shuffle = True
+
     print('Running network with the following parameters:')
     print(' alpha           = {0}'.format(alpha))
     print(' dropout         = {0}'.format(dropout))
@@ -142,21 +161,22 @@ def run(auto=True):
     print(' iterations      = {0}'.format(iterations))
     print(' printn          = {0}'.format(printn))
     print(' network         = {0}'.format(network))
+    print(' shuffle	 = {0}'.format(shuffle))
     print
 
     # Check if user has already loaded data. If not, make sure main() loads data
     r = raw_input('Has the data been pre-loaded? (Y/N): ')
-    if r == 'N' or r == 'n':
+    if r.lower() == 'n':
         initialize_data_variables()
 
-    main(alpha, dropout, batchsize, iterations, printn, network)
+    main(alpha, dropout, batchsize, iterations, printn, network, shuffle)
 
 def initialize_data_variables():
 
     global global_inputs, global_loaded_weights, global_labels
     global_inputs, a, b, global_loaded_weights, global_labels = load_data()
 
-def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, network_arg):
+def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, network_arg, shuffle_arg):
    
     # Create a standardized set of labels
     all_labels_standardized = (global_labels-global_labels.mean()) / global_labels.std()
@@ -184,10 +204,15 @@ def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, netw
     with tf.Session() as sess:
         print("Beginning session")
         sess.run(tf.global_variables_initializer())
-    
+
+        if shuffle_arg:    
+            final_inputs, final_labels = shuffle_data(global_inputs, all_labels_standardized)
+        else:
+ 	    final_inputs, final_labels = global_inputs, all_labels_standardized 
+
         # Set the run Parameters
-        batch_generator = next_batch(global_inputs, all_labels_standardized, 
-                                     batchsize_arg, shuffle=True)
+        batch_generator = next_batch(final_inputs, final_labels, 
+                                     batchsize_arg)
 
         print("Running for {0} iterations, using a batch size of {1}, "
                     "printing {2} times during training".format(
@@ -213,7 +238,7 @@ def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, netw
         # Test the network on the same data (for now)
         ret = sess.run(
             [inp_net],
-            feed_dict={lineouts: global_inputs, labels: all_labels_standardized, keep_prob: 1.0, alpha: alpha_arg}) 
+            feed_dict={lineouts: final_inputs, labels: final_labels, keep_prob: 1.0, alpha: alpha_arg}) 
 
 	# Print unstandardized RMSE
         rmse = np.sqrt(np.mean((((np.multiply(ret,global_labels.std()))+global_labels.mean())-global_labels)**2))
@@ -230,6 +255,7 @@ if __name__ == "__main__":
     parser.add_argument('-i','--iterations', dest='iterations', type=int, help='num training iterations', default=100000)
     parser.add_argument('-p','--printn', dest='printn', type=int, help='print loss n times throughout iteration', default=20)
     parser.add_argument('-n','--network', dest='network', type=int, help='number of neurons in hidden layer', default=3)
+    parser.add_argument('-s','--shuffle', dest='shuffle', type=bool, help='whether or not to shuffle the data', default=True)
 
     args = parser.parse_args()
 
@@ -238,4 +264,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args();
 
-    main(args.alpha, args.dropout, args.batchsize, args.iterations, args.printn, args.network)
+    main(args.alpha, args.dropout, args.batchsize, args.iterations, args.printn, args.network, args.shuffle)
