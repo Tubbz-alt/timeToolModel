@@ -171,14 +171,18 @@ def run(auto=True):
     if r.lower() == 'n':
         initialize_data_variables()
 
-    main(alpha, dropout, batchsize, epochs, printn, network, shuffle)
+    main(alpha, dropout, batchsize, epochs, printn, network, shuffle, False)
 
 def initialize_data_variables():
 
     global global_inputs, global_loaded_weights, global_labels
     global_inputs, a, b, global_loaded_weights, global_labels = load_data()
 
-def main(alpha_arg, dropout_arg, batchsize_arg, epochs_arg, printn_arg, network_arg, shuffle_arg):
+def main(alpha_arg, dropout_arg, batchsize_arg, epochs_arg, printn_arg, network_arg, shuffle_arg, read_data):
+
+    # If run from main method (not ipython), load data
+    if read_data:
+	initialize_data_variables()
    
     # Create a standardized set of labels
     all_labels_standardized = (global_labels-global_labels.mean()) / global_labels.std()
@@ -216,8 +220,8 @@ def main(alpha_arg, dropout_arg, batchsize_arg, epochs_arg, printn_arg, network_
         batch_generator = next_batch(final_inputs, final_labels, 
                                      batchsize_arg)
 
-        print("Running for {0} iterations, using a batch size of {1}, "
-                    "printing {2} times during training".format(
+        print("Running for {0} epochs, using a batch size of {1}, "
+                    "printing {2} times per epoch".format(
                         epochs_arg, batchsize_arg, printn_arg))        
         
         epoch, i = 0, 0
@@ -274,4 +278,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args();
 
-    main(args.alpha, args.dropout, args.batchsize, args.epochs, args.printn, args.network, args.shuffle)
+    main(args.alpha, args.dropout, args.batchsize, args.epochs, args.printn, args.network, args.shuffle, True)
