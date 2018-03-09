@@ -107,22 +107,42 @@ def run(auto=True):
         iterations = 100000
         printn = 20
         network = 3
-        print('Running network with the following parameters:')
-        print('	alpha 		= {0}'.format(alpha))
-        print('	dropout		= {0}'.format(dropout))
-        print('	batchsize	= {0}'.format(batchsize))
-	print('	iterations	= {0}'.format(iterations))
-	print('	printn		= {0}'.format(printn))
-	print('	network		= {0}'.format(network)) 
 
     # Command line interface will walk through entry
     elif not auto:
-        alpha = float(raw_input('Enter the learning rate, alpha: ')) 
-        dropout = float(raw_input('Enter the keep probability for dropout: ')) 
-        batchsize = int(raw_input('Enter the batch size: '))
-        iterations = int(raw_input('Enter the number of training iterations: ')) 
-        printn = int(raw_input('Enter the number of times loss should be printed in training iterations: ')) 
-        network = int(raw_input('Enter the number of neurons desired in hidden layer. Note only 3 or 100 supported: '))
+
+        alpha = 		raw_input('Enter the learning rate, alpha: ') 
+	if len(alpha) < 1:	alpha = 1e-4
+	else: alpha = 		float(alpha)
+
+        dropout = 		raw_input('Enter the keep probability for dropout: ') 
+        if len(dropout) < 1: 	dropout = 1.0
+	else: dropout = 	float(dropout)
+
+	batchsize = 		raw_input('Enter the batch size: ')
+        if len(batchsize) < 1: 	batchsize = 100
+	else: batchsize = 	int(batchsize)
+
+	iterations = 		raw_input('Enter the number of training iterations: ')
+	if len(iterations) < 1: iterations = 100000
+	else: iterations = 	int(iterations)
+ 
+        printn = 		raw_input('Enter the number of times loss should be printed in training iterations: ')
+	if len(printn) < 1: 	printn = 20
+	else: printn = 		int(printn) 
+        
+	network = 		raw_input('Enter the number of neurons desired in hidden layer. Note only 3 or 100 supported: ')
+	if len(network) < 1:	network = 3
+	else:			network = int(network)
+
+    print('Running network with the following parameters:')
+    print(' alpha           = {0}'.format(alpha))
+    print(' dropout         = {0}'.format(dropout))
+    print(' batchsize       = {0}'.format(batchsize))
+    print(' iterations      = {0}'.format(iterations))
+    print(' printn          = {0}'.format(printn))
+    print(' network         = {0}'.format(network))
+    print
 
     # Check if user has already loaded data. If not, make sure main() loads data
     r = raw_input('Has the data been pre-loaded? (Y/N): ')
