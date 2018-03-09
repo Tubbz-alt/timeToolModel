@@ -29,8 +29,8 @@ class GroundTruthGenerator:
         self.data = data
         self.polyFit = None
 
-    def correctPoint(deterministicVal):
-        if(self.polyFit == None):
+    def correctPoint(self, deterministicVal):
+        if self.polyFit is None:
             print("No polyfit generated yet! Call fitData")
             return
 
@@ -53,7 +53,7 @@ class GroundTruthGenerator:
         return fit2
 
     def computeMeans(self):
-        """Find the mean value for each detector offset. 
+        """Find the mean phase slope for each detector offset. 
 
         We assume one detector offset will produce normally-distributed data.
         """
@@ -97,19 +97,30 @@ class GroundTruthGenerator:
         Simple RANSAC implementation. The best fitting algorithm ever! This one
         assumes fitting a cubic
         """
-        bestFitResid = 1e15;
-        bestCoef = [];
+        bestFitResid = 1e15
+        bestCoef = []
 
         for i in range(it):
             idx = np.random.randint(data.shape[0], size=numSample)
             subset = data[idx,:]
+
+            # Get a cubic fit for the data
             fit = np.polyfit(subset[:,0], subset[:,1], 3)
 
-            guess = np.power(data[:,0], 3) * fit[0] + np.power(data[:,0], 2) \
-              * fit[1] + np.power(data[:,0], 1) * fit[2] + fit[3]
-            resid = np.abs(data[:,1] - guess)
-            countInlier = len(resid[resid <= inlierDelta])
+            # Evaluate the fit on all the phase slopes
+            guess = np.power(
+                data[:,0], 3) * fit[0] \
+                + np.power(data[:,0], 2) * fit[1] \
+                + np.power(data[:,0], 1) * fit[2] \
+                + fit[3]
 
+            # Calculate the residuals against the actual phase slopes
+            resid = np.abs(data[:,1] - guess)
+            
+            # Count how many are inliers
+            countInlier = len(resid[resid <= inlierDelta])
+            
+            # 
             if countInlier > goodFitCount:
 
                 bigSubset = data[resid <= inlierDelta]
@@ -118,6 +129,7 @@ class GroundTruthGenerator:
                 bigGuess = np.power(bigSubset[:,0], 3) * bigFit[0] \
                   + np.power(bigSubset[:,0], 2) * bigFit[1] \
                   + np.power(bigSubset[:,0], 1) * bigFit[2] + bigFit[3]
+
                 totalResid = np.sum(np.abs(bigSubset[:,1] - bigGuess))
 
                 if totalResid < bestFitResid:
