@@ -56,55 +56,20 @@ def back_transform(ft_abs, ft_arg):
 
 	return np.real(IFFT(nprect(ft_abs,ft_arg))) 
 
-def write_signal(signal, filename):
-
 	with open(filename, 'w') as f:
 		f.writelines([str(s) + '\n' for s in signal])
 
+
 lineouts = read_lineouts('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_matrix.dat')
 
-for lineout in lineouts:
+ft_mat = np.zeros((lineouts.shape[0], lineouts.shape[1]*2))
 
-	write_signal(lineout, 'sig.txt')
+for i,lineout in enumerate(lineouts):
 
 	ft_abs, ft_arg = transform(lineout)
-	write_signal(ft_abs, 'abs.txt')
-	write_signal(ft_arg, 'arg.txt')
 
-	diffs = gram_schmidt(ft_abs, 2)
-
-	weights = np.zeros(diffs.shape[0]*diffs.shape[1])
-	for i in range(diffs.shape[0]):
-		weights[diffs.shape[1]*i:diffs.shape[1]*(i+1),] = diffs[i,]
-		
-	write_signal(weights, 'init_weights.txt')
-
-	###########################
-	#     My Wiener filter    #
-	###########################
-
-	#wdiff,filt = my_weiner_filter(diffs[1,])
-
-	#write_signal(np.concatenate((-wdiff[512:],wdiff[:512])), 'wdiff.txt')
-	#write_signal(np.array(range(-511,512)), 'indices.txt')
-        #write_signal(np.concatenate((-diffs[1,512:],diffs[1,:512])), 'diff.txt')
-	#write_signal(np.concatenate((filt[512:],filt[:512])), 'filter.txt')
-
-        #lineoutback = back_transform(wdiff, ft_arg)
-        #write_signal(lineoutback, 'back.txt')
+	ft_mat[i,] = np.concatenate((ft_abs, ft_arg))
 
 
-	###########################
-	# Scipy's Wiener filter   #
-	###########################
+np.savetxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/transformed_source/xppl3816_r51_matrix.dat', ft_mat, delimiter=' ')
 
-#	diffback = back_transform(diffs[1,], ft_arg)
-#	wdiffback = sp_weiner_filter(diffback)
-#	wdiffabs, wdiffarg = transform(wdiffback)
-#
-#	write_signal(np.array(range(-511,512)), 'indices.txt')
-#	write_signal(np.concatenate((-diffs[1,512:],diffs[1,:512])), 'diff.txt')
-#	write_signal(np.concatenate((-wdiffabs[512:],wdiffabs[:512])), 'wdiff.txt')
-#
-#	write_signal(wdiffback, 'back.txt')
-	
