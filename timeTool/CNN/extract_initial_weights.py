@@ -98,13 +98,13 @@ for lineout in lineouts:
 	# Scipy's Wiener filter   #
 	###########################
 
-	diffback = back_transform(diffs[1,], ft_arg)
-	wdiffback = sp_weiner_filter(diffback)
-	wdiffabs, wdiffarg = transform(wdiffback)
-
-	write_signal(np.array(range(-511,512)), 'indices.txt')
-	write_signal(np.concatenate((-diffs[1,512:],diffs[1,:512])), 'diff.txt')
-	write_signal(np.concatenate((-wdiffabs[512:],wdiffabs[:512])), 'wdiff.txt')
-
-	write_signal(wdiffback, 'back.txt')
+#	diffback = back_transform(diffs[1,], ft_arg)
+#	wdiffback = sp_weiner_filter(diffback)
+#	wdiffabs, wdiffarg = transform(wdiffback)
+#
+#	write_signal(np.array(range(-511,512)), 'indices.txt')
+#	write_signal(np.concatenate((-diffs[1,512:],diffs[1,:512])), 'diff.txt')
+#	write_signal(np.concatenate((-wdiffabs[512:],wdiffabs[:512])), 'wdiff.txt')
+#
+#	write_signal(wdiffback, 'back.txt')
 	
