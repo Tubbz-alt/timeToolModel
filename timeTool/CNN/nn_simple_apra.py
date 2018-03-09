@@ -58,7 +58,7 @@ def simple_nn_100(inputs, labels, keep_prob, alpha):
 
     return net, loss, train_step
 
-def shuffle_data(inputs, labels):
+def shuffle_data(inputs, labels, labels_unstandardized):
     # Shuffle data to avoid time dependency in predictions
     len_inputs, len_labels = len(inputs), len(labels)
     if len_inputs != len_labels:
@@ -71,8 +71,9 @@ def shuffle_data(inputs, labels):
     # Apply ordering to inputs and labels
     shuffle_inputs = inputs[shuffle_indices]
     shuffle_labels = labels[shuffle_indices]
+    shuffled_labels_unstandardized = labels_unstandardized[shuffle_indices]
     
-    return shuffle_inputs, shuffle_labels
+    return shuffle_inputs, shuffle_labels, shuffled_labels_unstandardized
 
 def next_batch(inputs, labels, num):
     # Generate next batch, either from shuffled inputs or not shuffled inputs
@@ -86,10 +87,11 @@ def next_batch(inputs, labels, num):
     start = 0
     # Grab the next batch every time the generator is called
     while True:
+ 	epoch = int(start / len_inputs)
         batch_range = np.arange(start, start+num) % len_inputs
-        batch_inputs = inputs[batch_range]
+	batch_inputs = inputs[batch_range]
         batch_labels = labels[batch_range]
-        yield batch_inputs, batch_labels
+        yield batch_inputs, batch_labels, epoch
         start += num
 
 def load_data():
@@ -118,8 +120,8 @@ def run(auto=True):
         alpha 		= 1e-4
         dropout 	= 1.0
         batchsize 	= 100
-        iterations 	= 100000
-        printn 		= 20
+        epochs 		= 5
+        printn 		= 2
         network 	= 3
 	shuffle 	= True
 
@@ -138,12 +140,12 @@ def run(auto=True):
         if len(batchsize) < 1: 	batchsize = 100
 	else: batchsize = 	int(batchsize)
 
-	iterations = 		raw_input('Enter the number of training iterations: ')
-	if len(iterations) < 1: iterations = 100000
-	else: iterations = 	int(iterations)
+	epochs = 		raw_input('Enter the number of training epochs: ')
+	if len(epochs) < 1: 	epochs = 5
+	else: epochs = 		int(epochs)
  
-        printn = 		raw_input('Enter the number of times loss should be printed in training iterations: ')
-	if len(printn) < 1: 	printn = 20
+        printn = 		raw_input('Enter the number of times loss should be printed in each epoch: ')
+	if len(printn) < 1: 	printn = 2
 	else: printn = 		int(printn) 
         
 	network = 		raw_input('Enter the number of neurons desired in hidden layer. Note only 3 or 100 supported: ')
@@ -158,10 +160,10 @@ def run(auto=True):
     print(' alpha           = {0}'.format(alpha))
     print(' dropout         = {0}'.format(dropout))
     print(' batchsize       = {0}'.format(batchsize))
-    print(' iterations      = {0}'.format(iterations))
+    print(' epochs          = {0}'.format(epochs))
     print(' printn          = {0}'.format(printn))
     print(' network         = {0}'.format(network))
-    print(' shuffle	 = {0}'.format(shuffle))
+    print(' shuffle         = {0}'.format(shuffle))
     print
 
     # Check if user has already loaded data. If not, make sure main() loads data
@@ -169,14 +171,14 @@ def run(auto=True):
     if r.lower() == 'n':
         initialize_data_variables()
 
-    main(alpha, dropout, batchsize, iterations, printn, network, shuffle)
+    main(alpha, dropout, batchsize, epochs, printn, network, shuffle)
 
 def initialize_data_variables():
 
     global global_inputs, global_loaded_weights, global_labels
     global_inputs, a, b, global_loaded_weights, global_labels = load_data()
 
-def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, network_arg, shuffle_arg):
+def main(alpha_arg, dropout_arg, batchsize_arg, epochs_arg, printn_arg, network_arg, shuffle_arg):
    
     # Create a standardized set of labels
     all_labels_standardized = (global_labels-global_labels.mean()) / global_labels.std()
@@ -206,9 +208,9 @@ def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, netw
         sess.run(tf.global_variables_initializer())
 
         if shuffle_arg:    
-            final_inputs, final_labels = shuffle_data(global_inputs, all_labels_standardized)
+            final_inputs, final_labels, final_labels_unstandardized = shuffle_data(global_inputs, all_labels_standardized, global_labels)
         else:
- 	    final_inputs, final_labels = global_inputs, all_labels_standardized 
+ 	    final_inputs, final_labels, final_labels_unstandardized = global_inputs, all_labels_standardized, global_labels 
 
         # Set the run Parameters
         batch_generator = next_batch(final_inputs, final_labels, 
@@ -216,10 +218,17 @@ def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, netw
 
         print("Running for {0} iterations, using a batch size of {1}, "
                     "printing {2} times during training".format(
-                        iterations_arg, batchsize_arg, printn_arg))        
-        for i in range(iterations_arg):
-            # Fetch data of 50 images
+                        epochs_arg, batchsize_arg, printn_arg))        
+        
+        epoch, i = 0, 0
+	while epoch < epochs_arg:
+
+            # Fetch next batch of size batchsize_arg
             batch = next(batch_generator)
+	    
+	    # Track what epoch and if just changed epochs (for printing purposes)
+	    if (batch[2] - epoch) > 0: 	i = 0
+  	    epoch = batch[2]
 
             # Every step run training!
             _, iter_loss, output = sess.run(
@@ -227,10 +236,11 @@ def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, netw
                 feed_dict={lineouts: batch[0], labels: batch[1], keep_prob: dropout_arg, alpha: alpha_arg})
 
             # Print the loss printn times
-            if not i % (iterations_arg // printn_arg):
-                print("Got a loss of {0} for iteration {1}".format(
-                    iter_loss, i))
-        
+            if not i % (((len(global_labels) / batchsize_arg) + 1) // printn_arg):
+                print("Epoch {0}	Iteration {1}	Loss of {2}".format(
+                    epoch, i, iter_loss))
+	    i += 1        
+
         # Check if converged to case where all values are the same
         if output.mean() == 0. and output.std() == 0.:
             print('Converged incorrectly. Last batch output = {0}'.format(output))
@@ -241,7 +251,7 @@ def main(alpha_arg, dropout_arg, batchsize_arg, iterations_arg, printn_arg, netw
             feed_dict={lineouts: final_inputs, labels: final_labels, keep_prob: 1.0, alpha: alpha_arg}) 
 
 	# Print unstandardized RMSE
-        rmse = np.sqrt(np.mean((((np.multiply(ret,global_labels.std()))+global_labels.mean())-global_labels)**2))
+        rmse = np.sqrt(np.mean((((np.multiply(ret,global_labels.std()))+global_labels.mean())-final_labels_unstandardized)**2))
         print("Got an RMSE (unstandardized) of {0}".format(rmse))	
     
 if __name__ == "__main__":
@@ -252,8 +262,8 @@ if __name__ == "__main__":
     parser.add_argument('-a','--alpha', dest='alpha', type=float, help='learning rate', default=1e-4)
     parser.add_argument('-d','--dropout', dest='dropout', type=float, help='keep probability for dropout', default=1.0)
     parser.add_argument('-b','--batchsize', dest='batchsize', type=int, help='batch size', default=100)
-    parser.add_argument('-i','--iterations', dest='iterations', type=int, help='num training iterations', default=100000)
-    parser.add_argument('-p','--printn', dest='printn', type=int, help='print loss n times throughout iteration', default=20)
+    parser.add_argument('-e','--epochs', dest='epochs', type=int, help='num training epochs', default=5)
+    parser.add_argument('-p','--printn', dest='printn', type=int, help='print loss n times in each epoch', default=2)
     parser.add_argument('-n','--network', dest='network', type=int, help='number of neurons in hidden layer', default=3)
     parser.add_argument('-s','--shuffle', dest='shuffle', type=bool, help='whether or not to shuffle the data', default=True)
 
@@ -264,4 +274,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args();
 
-    main(args.alpha, args.dropout, args.batchsize, args.iterations, args.printn, args.network, args.shuffle)
+    main(args.alpha, args.dropout, args.batchsize, args.epochs, args.printn, args.network, args.shuffle)
