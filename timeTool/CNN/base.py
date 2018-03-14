@@ -35,20 +35,20 @@ class BaseModel(ABC):
     Parameters
     ----------
     name : str, optional
-    	A name for the model instance
+        A name for the model instance
 
     sess : tf.Session, optional
-    	This is just so the session can be accessed from within the object if
-    	needed
+        This is just so the session can be accessed from within the object if
+        needed
 
     data : Dataset, optional
-    	Dataset object with the data that is being used
+        Dataset object with the data that is being used
 
     x : Container, optional
-    	Data structure containing the input data
+        Data structure containing the input data
     
     y : Container, optional
-    	Data structure containing the label data
+        Data structure containing the label data
     """
     def __init__(self, name=None, sess=None, data=None, x=None, y=None):
         self.name = str(name)
@@ -147,9 +147,9 @@ class Dataset:
     class is to make the data an iterator to grab batches. This means that it
     can be made into a for loop like so:
 
-    	In [1]: mydataset = Dataset(inputs, labels)
-    	   ...: for x, y in mydataset:
-    	   ...:     ...
+        In [1]: mydataset = Dataset(inputs, labels)
+           ...: for x, y in mydataset:
+           ...:     ...
 
     In this exmaple, X and y contain corresponding batches defined the batch
     size parameter for the object.
@@ -161,43 +161,43 @@ class Dataset:
     incremented, and then looping through the dataset will simply begin anew.
 
     ..note: This means that the last batch in the iteration will be of a
-    		batch-size unless len(data) % batch_size is zero
+            batch-size unless len(data) % batch_size is zero
 
     Parameters
     ----------
     x : Container
-    	Input data in the form of an array or dataframe. It will be converted to
-    	a dataframe when it is instantiated
+        Input data in the form of an array or dataframe. It will be converted to
+        a dataframe when it is instantiated
 
     y : Container
-    	Labels for the data in the form of an array or dataframe. It will be
-    	converted to a dataframe when instantiated
+        Labels for the data in the form of an array or dataframe. It will be
+        converted to a dataframe when instantiated
 
     batch_size : int, optional
-    	Batch size for data batches
+        Batch size for data batches
 
     shuffle : bool, optional
-    	Shuffle the data when returning batches
+        Shuffle the data when returning batches
 
     loop : bool, optional
-    	Continue iterating indefinitely when used in a loop. This still results
-    	in a potentially different batch size for the last iteration in the
-    	epoch. It is expected that if this is set to ``True``, the loop will be
-    	interrupted by a ``break``.
+        Continue iterating indefinitely when used in a loop. This still results
+        in a potentially different batch size for the last iteration in the
+        epoch. It is expected that if this is set to ``True``, the loop will be
+        interrupted by a ``break``.
 
     replacement : bool, optional
-    	If shuffle is ``True``, select datapoints for the batch with replacement
+        If shuffle is ``True``, select datapoints for the batch with replacement
 
     Attributes
     ----------
     n_samples : int
-    	Number of samples that have been returned in total thus far
+        Number of samples that have been returned in total thus far
 
     n_epochs : int
-    	Number of completed epochs
+        Number of completed epochs
 
     n_batches : int
-    	Number of batches that have been returned in total thus far
+        Number of batches that have been returned in total thus far
     """
     def __init__(self, x, y, batch_size=1, shuffle=False, loop=False,
                  replacement=False):
@@ -347,20 +347,20 @@ class Dataset:
         Since this class has been implemented as an iterator, it can be used
         as follows:
 
-    		In [1]: mydataset = Dataset(inputs, labels)
-    	   	   ...: for x, y in mydataset.epochs(10):
-    	       ...:     ....
+            In [1]: mydataset = Dataset(inputs, labels)
+               ...: for x, y in mydataset.epochs(10):
+               ...:     ....
 
         In this example, the for loop will continue until the 10 epochs have
         been completed.
 
         ..note: This will reset the current position of the iterator to the
-        		start of the dataset.
+                start of the dataset.
 
         Parameters
         ----------
         num_epochs : int
-        	Number of epochs to iterate through
+            Number of epochs to iterate through
         """
         # Reset the remaining indices of this instance
         self.reset()
@@ -390,9 +390,9 @@ class Dataset:
         Since this class has been implemented as an iterator, it can be used
         as follows:
 
-    		In [1]: mydataset = Dataset(inputs, labels)
-    	   	   ...: for x, y in mydataset.batches(10):
-    	       ...:     ....
+            In [1]: mydataset = Dataset(inputs, labels)
+               ...: for x, y in mydataset.batches(10):
+               ...:     ....
 
         In this example, the for loop will continue until the 10 batches have
         been returned.
@@ -400,7 +400,7 @@ class Dataset:
         Parameters
         ----------
         num_batches : int
-        	Number of batches to return
+            Number of batches to return
         """
         def batch_generator():
             # Backup the current loop parameter
