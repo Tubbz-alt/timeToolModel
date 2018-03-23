@@ -5,6 +5,10 @@ from numpy.fft import ifft as IFFT
 from numpy.fft import fftfreq as FREQS
 from cmath import rect
 from math import exp
+
+import sys
+sys.path.insert(0, '/reg/neh/home/kfotion/timeTool/RF')
+
 from randomForestRegressorSim import read_training_data 
 from andiff_filters_sim import write_all_files
 
@@ -49,7 +53,7 @@ def write_signal(signal, filename):
 	with open(filename, 'w') as f:
 		f.writelines([str(s) + '\n' for s in signal])
 
-directory_in = 'data_simulation/'
+directory_in = '../data_simulation/'
 directory_out = '/reg/d/psdm/XPP/xppl3816/scratch/data_simulation_filtered/wiener/'
 
 lineouts, n_features = read_lineouts(directory_in)

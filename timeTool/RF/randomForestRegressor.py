@@ -1,5 +1,6 @@
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import *
+from sklearn.model_selection import cross_val_score
 from random import randint
 from multiprocessing import Pool
 from tqdm import tqdm
@@ -13,18 +14,18 @@ import operator
 ############################################
 #        Access filtered data 		   #
 ############################################
-def read_training_data(data_dir, write_dir, run_num):
+def read_training_data(data_dir, write_dir, exp_num, run_num):
 	
 	# Read shot numbers to be used for training
 	#with open(write_dir + 'xppl3816_r' + str(run_num) + '_training.dat','r') as f:
 	#	training_shots = [int(float(line.strip('\n'))) for line in f.readlines()]
 	
 	# Access delays (ground truths) 
-	with open(data_dir + 'xppl3816_r' + str(run_num) + '_delays.dat','r') as f:
+	with open(data_dir + exp_num + '_r' + str(run_num) + '_delays.dat','r') as f:
 		delay_lines = [line for line in f.readlines() if not line.startswith('#')]	
 	
 	# Access input data
-	with open(data_dir + 'xppl3816_r' + str(run_num) + '_matrix.dat','r') as f:
+	with open(data_dir + exp_num + '_r' + str(run_num) + '_matrix.dat','r') as f:
 		data_lines = [line for line in f.readlines() if not line.startswith('#')]
 
 	# Filter inputs and delays by training shot numbers
@@ -159,36 +160,64 @@ def iterate_x(model, x):
 	
 	return std
 
-def main(data_dir, write_dir, run_num):
+def getScores(estimator, x, y):
+    yPred = estimator.predict(x)
+    return (sqrt(fabs(mean_squared_error(y, yPred))),
+            r2_score(y, yPred))
+
+def my_scorer(estimator, x, y):
+    rmse, r = getScores(estimator, x, y)
+    print rmse, r
+    return rmse
+
+def main(args):
 
 	# Access training data -- that is, data in pixel_pos range [350,352)
 	print('Reading data...')
-	[inputs, ground_truths, num_samples, num_features, num_shots] = read_training_data(data_dir, write_dir, run_num)
+	[inputs, ground_truths, num_samples, num_features, num_shots] = read_training_data(args.directory, args.write, args.exp, args.run)
 
-	# Create the 3 folds by partitioning the data
-	print('Folding data...')
-	[partitioned_data, partitioned_truths, tracking] = fold_data(inputs, ground_truths, num_features, num_shots)
-	
-	# Perform cross validation and report mean R^2 value
-	print('Cross validation...')
-	param = {'n_estimators': 500, 'max_features': 45, 'max_depth': 20}	
-	print('3-fold CV R2: ' + str(cross_validate(partitioned_data, partitioned_truths, param)))
+	param = {'n_estimators': args.ntree, 'max_depth': args.depth, 'random_state': 2}
+        if args.mtry == 'sqrt' or args.mtry == '1/2':
+                param['max_features'] = int(sqrt(num_features))
+        elif args.mtry == '2/3':
+                param['max_features'] = int(num_features**(2./3))
+        elif args.mtry == '3/4':
+                param['max_features'] = int(num_features**(3./4))
+        elif args.mtry == 'log2':
+                param['max_features'] = int(log(num_features, 2))
+                print(param['max_features'])
+        elif args.mtry == 'log4':
+                param['max_features'] = int(log(num_features, 4))
+        else:
+                print('Invalid mtry entry. Options are 1/2 or sqrt, 2/3, 3/4, log2, or log4.')
+
+        # Perform cross validation and report mean R^2 value and RMSE
+        print('Performing ' + str(args.folds) + '-fold cross validation')
+
+        forest = RandomForestRegressor(n_estimators=param['n_estimators'],
+                                        max_features=param['max_features'],
+                                        max_depth=param['max_depth'],
+                                        random_state=param['random_state'])
+
+        scores = cross_val_score(forest, inputs, ground_truths, cv=args.folds, scoring=my_scorer)
+        print(scores)
+        print('RMSE: ' + str(scores.mean()))
 
 if __name__ == "__main__": 
 
 	# Set up arg parser 
         helpstr = 'Perform 3-fold cross validation for random forest regressor on data in pixel_pos range [350,352)'
         parser = argparse.ArgumentParser(description=helpstr);
+	parser.add_argument('-e', '--exp', dest='exp', type=str, help='experiment num', default='xppl3816')
         parser.add_argument('-r','--run', dest='run', type=int, help='run number', default=52)
 	parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', default='/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/')
         parser.add_argument('-w','--write',dest='write',type=str, help='path to directory to write files to', default='/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_results/')
+	parser.add_argument('-f', '--folds', dest='folds', type=int, help='number of folds for cross validation', default=5)
+	parser.add_argument('-n', '--ntree', dest='ntree', type=int, help='number of trees in forest', default=800)
+        parser.add_argument('-m', '--mtry', dest='mtry', type=str, help='number of candidate features at each node split', default='sqrt')
+        parser.add_argument('-l', '--depth', dest='depth', type=int, help='max tree depth', default=20)
 
         args = parser.parse_args();
 
-        # Access input
-        run_num = args.run
-	data_dir = args.directory
-	write_dir = args.write
-
         # Call main()
-        main(data_dir, write_dir, run_num)
+        main(args)

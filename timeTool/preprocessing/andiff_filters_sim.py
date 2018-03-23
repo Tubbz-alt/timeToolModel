@@ -1,10 +1,14 @@
 import numpy as np
 from itertools import islice
 from scipy import signal
-from randomForestRegressorSim import read_all_files
 import argparse
 from os import listdir
 from os.path import isfile, join
+
+import sys
+sys.path.insert(0, '/reg/neh/home/kfotion/timeTool/RF')
+
+from randomForestRegressorSim import read_all_files
 
 #Last modified 1/12/18
 
@@ -137,7 +141,7 @@ if __name__ == "__main__":
     # Set up arg parser 
     helpstr = 'Filter differentiated signals with various cutoff frequencies'
     parser = argparse.ArgumentParser(description=helpstr);
-    parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', default='data_simulation/')
+    parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', default='../data_simulation/')
     parser.add_argument('-o', '--out', dest='out', type=str, help='name of output directory', default='/reg/d/psdm/XPP/xppl3816/scratch/data_simulation_filtered/')
     parser.add_argument('-r', '--row', dest='row', type=int, help='row number from simulation data', default=0)
 

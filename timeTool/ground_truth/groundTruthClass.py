@@ -29,7 +29,7 @@ class GroundTruthGenerator:
         self.data = data
         self.polyFit = None
 
-    def correctPoint(deterministicVal):
+    def correctPoint(self, deterministicVal):
         if(self.polyFit == None):
             print("No polyfit generated yet! Call fitData")
             return

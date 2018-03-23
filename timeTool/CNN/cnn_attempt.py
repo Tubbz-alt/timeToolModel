@@ -1,27 +1,35 @@
 import logging
+import argparse
 
 import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.layers import fully_connected
 
-import argparse
+import scipy.signal as sp
+from numpy.fft import fft as FFT
+from numpy.fft import ifft as IFFT
+from numpy.fft import fftfreq as FREQS
+from cmath import rect
+from math import exp
+
+nprect = np.vectorize(rect)
 
 logger = logging.getLogger(__name__)
 
-def preloaded_cnn(inputs, labels, keep_prob, alpha, filters):
+def preloaded_cnn(inputs, labels, keep_prob, alpha, num_filters, k_size):
 
     # CONV1
-    net = tf.nn.conv2d(inputs, filters, strides=[1,1,1,1], padding="SAME") 
+    net = tf.layers.conv2d(inputs=inputs, filters=num_filters, kernel_size=k_size, padding="SAME")
+    #net = tf.nn.conv2d(inputs, filters, strides=[1,1,1,1], padding="SAME") 
 
     # MAXPOOL
-    net = tf.nn.max_pool(net, [1, 1, 500, 1], strides=[1,1,1,1], padding="SAME")
+    net = tf.nn.max_pool(net, [1, 3, 300, 1], strides=[1,1,1,1], padding="SAME")
+
+    # CONV2
+    #net = tf.layers.conv2d(inputs=net, filters=3, kernel_size=k_size, padding="SAME")
+    #net = tf.nn.dropout(net, keep_prob)
 
     # FC1
-    net = fully_connected(net, num_outputs=10)
-
-    net = tf.nn.dropout(net, keep_prob)
-
-    # FC2
     net = fully_connected(net, num_outputs=1, activation_fn=None)
 
     #Train operations
@@ -70,18 +78,53 @@ def next_batch(inputs, labels, num):
         yield batch_inputs, batch_labels, epoch
         start += num
 
-def load_data():
+def load_transformed_data():
+
     print("Loading files...")
 
-    inputs = np.loadtxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_matrix.dat')
+    data = np.loadtxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_matrix.dat')
 
-    a,b,all_labels = np.loadtxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_delays.dat', unpack=True)
+    transformed_data = np.zeros((data.shape[0], data.shape[1], 3))
+
+    for i,lineout in enumerate(data):
+        transformed = transform(lineout) 
+        freq = FREQS(len(lineout))
+        stacked = np.zeros((data.shape[1], 0))
+        stacked = np.column_stack((stacked, transformed[0]))
+        stacked = np.column_stack((stacked, transformed[1]))
+        stacked = np.column_stack((stacked, freq))
+        transformed_data[i,:,:] = stacked
+
+    # NOTE: CHANGE THIS SO THAT DIVIDE BY STD IF NOT 0, OTHEREWISE MAKE ELEMENT 0
+    print(np.std(transformed_data, axis=0))
+    transformed_data = (transformed_data - np.mean(transformed_data, axis=0)) / np.std(transformed_data, axis=0)
+
+    _,_,all_labels = np.loadtxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_delays.dat', unpack=True)
 
     weights = np.transpose(np.loadtxt('init_weights.txt').reshape(3,1000))
 
     # Reshape the labels to appease tf
     all_labels = all_labels.reshape(len(all_labels), 1)
-    return inputs, a, b, weights, all_labels
+    return transformed_data, weights, all_labels
+
+def transform(lineout):
+
+        lineoutFT = FFT(lineout)
+
+        return np.abs(lineoutFT), np.unwrap(np.angle(lineoutFT))
+
+def load_data():
+    print("Loading files...")
+
+    inputs = np.loadtxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_matrix.dat')
+
+    _,_,all_labels = np.loadtxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_delays.dat', unpack=True)
+
+    weights = np.transpose(np.loadtxt('init_weights.txt').reshape(3,1000))
+
+    # Reshape the labels to appease tf
+    all_labels = all_labels.reshape(len(all_labels), 1)
+    return inputs, weights, all_labels
 
 # To be used in ipython to help with parameter entry
 def run(auto=True):
@@ -152,7 +195,7 @@ def run(auto=True):
 def initialize_data_variables():
 
     global global_inputs, global_loaded_weights, global_labels
-    global_inputs, a, b, global_loaded_weights, global_labels = load_data()
+    global_inputs, global_loaded_weights, global_labels = load_transformed_data()
 
 def main(alpha_arg, dropout_arg, batchsize_arg, epochs_arg, printn_arg, network_arg, shuffle_arg):
    
@@ -163,21 +206,20 @@ def main(alpha_arg, dropout_arg, batchsize_arg, epochs_arg, printn_arg, network_
 
     # Define the variables
     with tf.variable_scope('input'):
-        lineouts = tf.placeholder(tf.float32, shape=[None, 1, 1000, 1]) # [batch, height, width, channels]
+        lineouts = tf.placeholder(tf.float32, shape=[None, 1000, 3, 1]) # [batch, height, width, channels]
         labels = tf.placeholder(tf.float32, shape=[None, 1, 1, 1])
         keep_prob = tf.placeholder(tf.float32)
         alpha = tf.placeholder(tf.float32)
-        filters = tf.placeholder(tf.float32, shape=[1, 1, 1, 3])	# [filter_height, filter_width, in_channels, out_channels]
+        #filters = tf.placeholder(tf.float32, shape=[1, 1, 1, 3])	# [filter_height, filter_width, in_channels, out_channels]
 
     print("Defining networks")
 
-    weight_means = np.mean(global_loaded_weights, axis=0)
-    weight_filter = np.reshape(weight_means, (1, 1, 1, 3))
+    #weight_means = np.mean(global_loaded_weights, axis=0)
+    #weight_filter = np.reshape(weight_means, (1, 1, 1, 3))
 
     if(network_arg == 3):
-        # Weights pre-initialized
         inp_net, inp_loss, inp_train_step = preloaded_cnn(
-            lineouts, labels, keep_prob, alpha, filters)
+            lineouts, labels, keep_prob, alpha, 3, [3, 3])
     else:
 	print('Reminder: 100 neuron FC not in this code')
  
@@ -212,11 +254,11 @@ def main(alpha_arg, dropout_arg, batchsize_arg, epochs_arg, printn_arg, network_
             # Every step run training!
             _, iter_loss, output = sess.run(
                 [inp_train_step, inp_loss, inp_net], 
-                feed_dict={lineouts: np.reshape(batch[0],(batchsize_arg, 1, 1000, 1)), 
+                feed_dict={lineouts: np.reshape(batch[0],(batchsize_arg, 1000, 3, 1)), 
 			   labels: np.reshape(batch[1],(batchsize_arg, 1, 1, 1)), 
 			   keep_prob: dropout_arg, 
-			   alpha: alpha_arg, 
-			   filters: weight_filter})
+			   alpha: alpha_arg}) 
+			   #filters: weight_filter})
 
             # Print the loss printn times
             if not i % (((len(global_labels) / batchsize_arg) + 1) // printn_arg):
@@ -231,11 +273,11 @@ def main(alpha_arg, dropout_arg, batchsize_arg, epochs_arg, printn_arg, network_
         # Test the network on the same data (for now)
         ret = sess.run(
             [inp_net],
-            feed_dict={lineouts: np.reshape(final_inputs, (final_inputs.shape[0], 1, 1000, 1)), 
+            feed_dict={lineouts: np.reshape(final_inputs, (final_inputs.shape[0], 1000, 3, 1)), 
 			labels: np.reshape(final_labels, (final_inputs.shape[0], 1, 1, 1)), 
 			keep_prob: 1.0, 
-			alpha: alpha_arg,
-			filters: weight_filter})
+			alpha: alpha_arg})
+			#filters: weight_filter})
 
 	# Print unstandardized RMSE
         rmse = np.sqrt(np.mean((((np.multiply(ret,global_labels.std()))+global_labels.mean())-final_labels_unstandardized)**2))

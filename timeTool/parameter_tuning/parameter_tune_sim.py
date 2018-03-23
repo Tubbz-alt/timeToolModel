@@ -1,4 +1,9 @@
 import argparse
+
+import sys
+sys.path.insert(0, '/reg/neh/home/kfotion/timeTool/RF')
+sys.path.insert(0, '/reg/neh/home/kfotion/timeTool/SVM')
+
 import randomForestRegressorSim as rf
 import supportVectorRegressorSim as svr
 from sklearn.ensemble import RandomForestRegressor
@@ -19,7 +24,7 @@ def parameter_tune(inputs, truths, ntree=None, mtry=None, depth=None, kernel=Non
 
                 # Check if ntree is specified or needs to be tuned
                 if ntree is None:
-                        param1 = range(900, 1200, 50)
+                        param1 = range(800, 1200, 50)
                 else:
                         param1 = [ntree]
 
@@ -104,7 +109,7 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description=helpstr);
         parser.add_argument('-r','--run', dest='run', type=int, help='run number', default=52)
         parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', 
-				default='data_simulation/')
+				default='../data_simulation/')
 	parser.add_argument('-n','--ntree',dest='ntree',type=int, help='number of trees/estimators in forest', default=None)
 	parser.add_argument('-f','--mtry', dest='mtry', type=int, help='number of candidate features at each node split', default=None)
 	parser.add_argument('-l','--depth',dest='depth',type=int, help='max depth allowable in tree', default=20)

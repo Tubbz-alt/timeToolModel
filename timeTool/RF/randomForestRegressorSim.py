@@ -38,6 +38,7 @@ def read_file(filename, row):
 
         with open(filename, 'r') as f:
                 delay_line = f.readline()
+
                 signal_line = f.readlines()[row].strip().split('\t')
         delay = float(delay_line.strip().split('\t')[1])
         signal = np.array([float(x) for x in signal_line])
@@ -152,7 +153,7 @@ if __name__ == "__main__":
         # Set up arg parser 
         helpstr = 'Perform 3-fold cross validation for random forest regressor on simulation data'
         parser = argparse.ArgumentParser(description=helpstr);
-        parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', default='data_simulation/')
+        parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', default='../data_simulation/')
 	parser.add_argument('-f', '--folds', dest='folds', type=int, help='number of folds for cross validation', default=5)
 	parser.add_argument('-n', '--ntree', dest='ntree', type=int, help='number of trees in forest', default=165)
   	parser.add_argument('-m', '--mtry', dest='mtry', type=str, help='number of candidate features at each node split', default='sqrt')

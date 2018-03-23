@@ -130,7 +130,7 @@ if __name__ == "__main__":
 	# Set up arg parser 
         helpstr = 'Perform 3-fold cross validation for support vector machine regressor on simulation data'
         parser = argparse.ArgumentParser(description=helpstr);
-	parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', default='data_simulation/')
+	parser.add_argument('-d','--directory',dest='directory', type=str, help='path to directory with original data files', default='../data_simulation/')
 	parser.add_argument('-f','--folds',dest='folds', type=int, help='number of folds for cross validation', default=5)
 	parser.add_argument('-c', '--c', dest='c', type=float, help='C', default=0.01)
 	parser.add_argument('-g', '--gamma', dest='gamma', type=float, help='gamma', default=1000)

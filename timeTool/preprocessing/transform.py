@@ -59,17 +59,19 @@ def back_transform(ft_abs, ft_arg):
 	with open(filename, 'w') as f:
 		f.writelines([str(s) + '\n' for s in signal])
 
+def main():
+	
+	lineouts = read_lineouts('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_matrix.dat')
 
-lineouts = read_lineouts('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/data_source/xppl3816_r51_matrix.dat')
+	ft_mat = np.zeros((lineouts.shape[0], lineouts.shape[1]*2))
 
-ft_mat = np.zeros((lineouts.shape[0], lineouts.shape[1]*2))
+	for i,lineout in enumerate(lineouts):
+	
+		ft_abs, ft_arg = transform(lineout)
 
-for i,lineout in enumerate(lineouts):
+		ft_mat[i,] = np.concatenate((ft_abs, ft_arg))
 
-	ft_abs, ft_arg = transform(lineout)
+	np.savetxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/transformed_source/xppl3816_r51_matrix.dat', ft_mat, delimiter=' ')
 
-	ft_mat[i,] = np.concatenate((ft_abs, ft_arg))
-
-
-np.savetxt('/reg/d/psdm/XPP/xppl3816/scratch/timeTool_ml/transformed_source/xppl3816_r51_matrix.dat', ft_mat, delimiter=' ')
-
+if __name__=='__main__':
+	main()
